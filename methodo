@@ -1,0 +1,24 @@
+file level0          # type du binaire, architecture
+strings level0       # chaînes lisibles en clair
+ltrace ./level0      # trace les appels de fonctions libc
+strace ./level0      # trace les appels système
+./level0             # comportement avec des inputs variés
+
+https://dogbolt.org/ # decompilation recuperation code C
+
+                     # lecture du code C
+
+1. Qu'est-ce que le programme attend de moi ?
+
+Est-ce qu'il lit argv ? stdin ? Un fichier ?
+Est-ce qu'il compare quelque chose à une valeur fixe ?
+Quel est le chemin "normal" d'exécution qui mène au succès ?
+
+Fonction dangereuse | Pourquoi                              | Alternative sûre
+--------------------|---------------------------------------|------------------
+gets()              | Pas de limite de taille               | fgets()
+strcpy()            | Pas de limite de taille               | strncpy()
+scanf("%s", ...)    | Pas de limite de taille               | scanf("%Ns", ...)
+printf(input)       | Format string si input non contrôlé   | printf("%s", input)
+strcmp()            | Timing attack possible                | -
+strcat()            | Débordement possible                  | strncat()

@@ -121,34 +121,11 @@ Dump of assembler code for function main:
 End of assembler dump.
 (gdb) 
 
-- converter
+   0x08048ed4 <+20>:	call   0x8049710 <atoi>
+   0x08048ed9 <+25>:	cmp    $0x1a7,%eax
 
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <sys/types.h>
-
-int main(int argc, char *argv[]) {
-    if (argc > 1 && atoi(argv[1] + 4) == 423) { // 0x1a7 = 423 decimal
-        char *path = strdup("/path/to/somewhere"); // 0x80c5348 assumed string address
-        gid_t egid = getegid();
-        uid_t euid = geteuid();
-
-        setresgid(egid, egid, egid);
-        setresuid(euid, euid, euid);
-
-        char *args[] = { "/path/to/somewhere", path, NULL };
-        execv("/path/to/somewhere", args);
-    } else {
-        // fwrite call with some global data
-        extern const char some_data[];
-        extern size_t some_data_size;
-
-        fwrite(some_data, 1, 5, stdout);
-    }
-    return 0;
-}
+   eax == return atoi
+   0x1a7 to decimal = 423
 
 level0@RainFall:~$ ./level0 423
 $ ls

