@@ -1,0 +1,51 @@
+➜  level1 git:(main) ✗ scp -P 4242 level2@10.171.54.37:/home/user/level2/level2 ../bin/.
+
+decompilation:
+void p(void)
+{
+	uint unaff_retaddr;
+	char local_50 [76];
+	
+	fflush(stdout);
+	gets(local_50);
+	if ((unaff_retaddr & 0xb0000000) == 0xb0000000) {
+		printf("(%p)\n",unaff_retaddr);		// WARNING: Subroutine does not return
+		_exit(1);
+	}
+	puts(local_50);
+	strdup(local_50);
+	return;
+}
+
+void main(void)
+{
+	p();
+	return;
+}
+
+
+man fflush
+fflush(3)                                                 Library Functions Manual                                                fflush(3)
+
+NAME
+       fflush - flush a stream
+
+LIBRARY
+       Standard C library (libc, -lc)
+
+SYNOPSIS
+       #include <stdio.h>
+
+       int fflush(FILE *_Nullable stream);
+
+DESCRIPTION
+       For  output  streams, fflush() forces a write of all user-space buffered data for the given output or update stream via the stream's
+       underlying write function.
+
+
+level2@RainFall:~$ cat /tmp/payload - | ./level2
+hey
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhey
+ho
+Segmentation fault (core dumped)
+level2@RainFall:~$ 

