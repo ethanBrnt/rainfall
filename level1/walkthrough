@@ -121,7 +121,7 @@ gs             0x33	51
 valeur EBP 
 ebp            0x41414141	0x41414141
 
-a 76 char on s'arrete juste avant eip a epb remplis par des A (441 enm ASCII)
+a 76 char on s'arrete juste avant eip a epb remplis par des A (41 en ASCII)
 
 creer une payload de 76 A puis le jump a l'adresse de la fonction run()
 level1/source.py

