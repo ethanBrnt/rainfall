@@ -417,7 +417,7 @@ mais dans edx ce sont des valeur du shellcode alors qu'il devrais etre set a NUL
 
 besoins d'ajouter un opcode xor %edx,%edx pour set edx a 0 car il est pas initialiser
 https://defuse.ca/online-x86-assembler.htm#disassembly
-converti assembly en opcode/bytecode %edx,%edx = "\x31\xD2"
+converti assembly en opcode/bytecode xor %edx,%edx = "\x31\xD2"
 
 il suffit d'ajouter \x31\xD2 devant \xcd\x80.
 

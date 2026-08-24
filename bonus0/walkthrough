@@ -1,0 +1,58 @@
+➜  ~ ssh bonus0@192.168.1.28 -p 4242
+          _____       _       ______    _ _
+         |  __ \     (_)     |  ____|  | | |
+         | |__) |__ _ _ _ __ | |__ __ _| | |
+         |  _  /  _` | | '_ \|  __/ _` | | |
+         | | \ \ (_| | | | | | | | (_| | | |
+         |_|  \_\__,_|_|_| |_|_|  \__,_|_|_|
+
+                 Good luck & Have fun
+
+  To start, ssh with level0/level0 on 192.168.1.28:4242
+bonus0@192.168.1.28's password:
+  GCC stack protector support:            Enabled
+  Strict user copy checks:                Disabled
+  Restrict /dev/mem access:               Enabled
+  Restrict /dev/kmem access:              Enabled
+  grsecurity / PaX: No GRKERNSEC
+  Kernel Heap Hardening: No KERNHEAP
+ System-wide ASLR (kernel.randomize_va_space): Off (Setting: 0)
+RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
+No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/bonus0/bonus0
+bonus0@RainFall:~$ ls
+bonus0
+bonus0@RainFall:~$ ./bonus0
+ -
+hey
+ -
+bah
+hey bah
+bonus0@RainFall:~$
+
+bonus0@RainFall:~$ ./bonus0
+ -
+hey
+ -
+bah
+hey bah
+bonus0@RainFall:~$ ltrace ./bonus0
+__libc_start_main(0x80485a4, 1, 0xbffff7f4, 0x80485d0, 0x8048640 <unfinished ...>
+puts(" - " -
+)                                                   = 4
+read(0, hey
+"hey\n", 4096)                                        = 4
+strchr("hey\n", '\n')                                         = "\n"
+strncpy(0xbffff6d8, "hey", 20)                                = 0xbffff6d8
+puts(" - " -
+)                                                   = 4
+read(0, coucou
+"coucou\n", 4096)                                     = 7
+strchr("coucou\n", '\n')                                      = "\n"
+strncpy(0xbffff6ec, "coucou", 20)                             = 0xbffff6ec
+strcpy(0xbffff726, "hey")                                     = 0xbffff726
+strcat("hey ", "coucou")                                      = "hey coucou"
+puts("hey coucou"hey coucou
+)                                            = 11
++++ exited (status 0) +++
+bonus0@RainFall:~$
+
