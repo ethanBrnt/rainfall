@@ -129,7 +129,7 @@ eip            0x37634136       0x37634136
 
 https://www.rapidtables.com/convert/number/hex-to-ascii.html
 37634136 = 7cA6
-little endian psk x86 donc 6Ac7
+little endian car x86 donc 6Ac7
 
 63 octets (chars) entre le debut de la string et eip
 
