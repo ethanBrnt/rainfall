@@ -147,7 +147,7 @@ Dump of assembler code for function main:
    0x080485ca <+38>:    leave
    0x080485cb <+39>:    ret
 End of assembler dump.
-(gdb) break *0x080485cb                        << break avant un return pour consulter esp qui c'est fait depiler
+(gdb) break *0x080485cb                        << break avant un return pour consulter esp qui c'est fait depiler qui est le saved eip
 Breakpoint 1 at 0x80485cb
 (gdb) run
 ...
