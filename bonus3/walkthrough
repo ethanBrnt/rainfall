@@ -1,0 +1,42 @@
+bonus3@RainFall:~$ ls
+bonus3
+bonus3@RainFall:~$ ./bonus3
+bonus3@RainFall:~$ echo $?
+255
+bonus3@RainFall:~$ ./bonus3 hey
+
+bonus3@RainFall:~$ echo $?
+0
+bonus3@RainFall:~$ ./bonus3 hey ho
+bonus3@RainFall:~$ echo $?
+255
+bonus3@RainFall:~$
+
+int __cdecl main(int argc, const char **argv, const char **envp)
+{
+	char ptr[132]; // [esp+18h] [ebp-90h] BYREF
+	FILE *v5; // [esp+9Ch] [ebp-Ch]
+
+	v5 = fopen("/home/user/end/.pass", "r");
+	memset(ptr, 0, sizeof(ptr));
+	if ( v5 == nullptr || argc != 2 )
+		return -1;
+	fread(ptr, 1u, 0x42u, v5); //66
+	ptr[65] = 0;
+	ptr[atoi(argv[1])] = 0;
+	fread(&ptr[66], 1u, 0x41u, v5); //65
+	fclose(v5);
+	if ( strcmp(ptr, argv[1]) == 0 )
+		execl("/bin/sh", "sh", 0);
+	else
+		puts(&ptr[66]);
+	return 0;
+}
+
+
+bonus3@RainFall:~$ ./bonus3 ""
+$ pwd
+/home/user/bonus3
+$ cat /home/user/end/.pass
+3321b6f81659f9a71c76616f606e4b50189cecfea611393d5d649f75e157353c
+$

