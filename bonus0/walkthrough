@@ -183,7 +183,6 @@ on essaye par les vars d'env
 
 bonus0@RainFall:~$ cd /tmp/
 bonus0@RainFall:/tmp$ nano shellcodeGen.py
-bonus0@RainFall:/tmp$ python shellcodeGen.py > shellcode
 bonus0@RainFall:/tmp$ nano get_env.c
 bonus0@RainFall:/tmp$ gcc get_env.c
 bonus0@RainFall:/tmp$ ls
@@ -311,6 +310,9 @@ Breakpoint 1, 0x080485cb in main ()
 (gdb) x/xw $esp
 0xbffff6ec:     0xbfffff07
 (gdb)
+
+
+ajout du nops sled
 
 bonus0@RainFall:~$ python /tmp/script.py | ./bonus0
  -
